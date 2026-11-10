@@ -32,6 +32,12 @@ export enum FaceId {
   BACK = 5,
 }
 
+/**
+ * Describe the face_ids API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export const FACE_IDS: readonly FaceId[] = Object.freeze([
   FaceId.UP,
   FaceId.DOWN,
@@ -41,8 +47,29 @@ export const FACE_IDS: readonly FaceId[] = Object.freeze([
   FaceId.BACK,
 ]);
 
+/**
+ * Describe the face_count API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export const FACE_COUNT = 6 as const;
 
+/** Maximum cube instances accepted by one geometry specification. */
+export const MAX_SUPPORTED_CUBE_COUNT = 4_096;
+
+/** Maximum face-grid edge length accepted for one cube. */
+export const MAX_SUPPORTED_GRID_SIZE = 128;
+
+/** Maximum facelet slots in one geometry system (resource-safety boundary). */
+export const MAX_SUPPORTED_TOTAL_SLOTS = 100_000;
+
+/**
+ * Describe the cube config API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface CubeConfig {
   /** Unique within one SystemSpec. Need not be contiguous or ordered. */
   readonly id: CubeId;
@@ -79,31 +106,61 @@ export interface SlotRange {
   readonly count: number;
 }
 
+/**
+ * Create a validated non-negative cube identifier.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function makeCubeId(value: number): CubeId {
   assertNonNegativeSafeInteger(value, 'CubeId');
   return value as CubeId;
 }
 
+/**
+ * Create a validated non-negative global slot identifier.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function makeSlotId(value: number): SlotId {
   assertNonNegativeSafeInteger(value, 'SlotId');
   return value as SlotId;
 }
 
+/**
+ * Check whether a runtime value is one of the six canonical face identifiers.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function isFaceId(value: unknown): value is FaceId {
   return (
     typeof value === 'number' &&
-    Number.isInteger(value) &&
+    Number.isSafeInteger(value) &&
     value >= FaceId.UP &&
     value <= FaceId.BACK
   );
 }
 
+/**
+ * Require a non-negative JavaScript safe integer.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function assertNonNegativeSafeInteger(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value < 0) {
     throw new RangeError(`${name} must be a non-negative safe integer; received ${String(value)}`);
   }
 }
 
+/**
+ * Require a positive JavaScript safe integer.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function assertPositiveSafeInteger(value: number, name: string): void {
   if (!Number.isSafeInteger(value) || value <= 0) {
     throw new RangeError(`${name} must be a positive safe integer; received ${String(value)}`);

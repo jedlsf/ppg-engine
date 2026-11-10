@@ -10,6 +10,9 @@ import {
   isFaceId,
   makeCubeId,
   makeSlotId,
+  MAX_SUPPORTED_CUBE_COUNT,
+  MAX_SUPPORTED_GRID_SIZE,
+  MAX_SUPPORTED_TOTAL_SLOTS,
   SlotId,
   SlotRange,
   SystemSpec,
@@ -34,12 +37,17 @@ export function createSystemSpec(cubes: readonly CubeConfig[]): SystemSpec {
     throw new TypeError('cubes must be an array');
   }
 
+  if (cubes.length > MAX_SUPPORTED_CUBE_COUNT) {
+    throw new RangeError(`Cube count exceeds the supported limit of ${MAX_SUPPORTED_CUBE_COUNT}; received ${cubes.length}`);
+  }
+
   const seenIds = new Set<number>();
   const normalizedCubes: CubeConfig[] = [];
   let totalSlots = 0;
 
   for (const [index, inputCube] of cubes.entries()) {
-    if (inputCube === null || typeof inputCube !== 'object') {
+    if (!Object.hasOwn(cubes, index)) throw new TypeError(`Cube configuration at index ${index} is missing`);
+    if (inputCube === null || typeof inputCube !== 'object' || Array.isArray(inputCube)) {
       throw new TypeError(`Cube configuration at index ${index} must be an object`);
     }
 
@@ -62,11 +70,14 @@ export function createSystemSpec(cubes: readonly CubeConfig[]): SystemSpec {
     if (!Number.isSafeInteger(slotCount)) {
       throw new RangeError(`Slot count overflows safe integer range for cube ${id}`);
     }
+    if (gridSize > MAX_SUPPORTED_GRID_SIZE) throw new RangeError(`gridSize for cube ${id} exceeds the supported limit of ${MAX_SUPPORTED_GRID_SIZE}`);
 
-    totalSlots += slotCount;
-    if (!Number.isSafeInteger(totalSlots)) {
-      throw new RangeError('Total slot count overflows safe integer range');
+    if (gridSize > MAX_SUPPORTED_GRID_SIZE) throw new RangeError(`gridSize for cube ${id} exceeds the supported limit of ${MAX_SUPPORTED_GRID_SIZE}`);
+
+    if (slotCount > MAX_SUPPORTED_TOTAL_SLOTS - totalSlots) {
+      throw new RangeError(`Total slot count exceeds the supported limit of ${MAX_SUPPORTED_TOTAL_SLOTS}`);
     }
+    totalSlots += slotCount;
 
     normalizedCubes.push(Object.freeze({ id, gridSize }));
   }
@@ -85,11 +96,23 @@ export function createSystemSpec(cubes: readonly CubeConfig[]): SystemSpec {
  * slotIdToCoordinate is O(log M), where M is the number of cube instances.
  */
 export class SlotIndexingEngine {
+  /**
+   * Provide the spec operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly spec: SystemSpec;
 
   private readonly layouts: readonly CubeLayout[];
   private readonly layoutByCubeId: ReadonlyMap<CubeId, CubeLayout>;
 
+  /**
+   * function Object() { [native code] }
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public constructor(spec: SystemSpec) {
     if (spec === null || typeof spec !== 'object') {
       throw new TypeError('SystemSpec must be an object');
@@ -136,10 +159,12 @@ export class SlotIndexingEngine {
       throw new TypeError('gridSizes must be an array');
     }
 
-    const cubes: CubeConfig[] = gridSizes.map((gridSize, index) => ({
-      id: makeCubeId(index),
-      gridSize,
-    }));
+    if (gridSizes.length > MAX_SUPPORTED_CUBE_COUNT) throw new RangeError(`Cube count exceeds the supported limit of ${MAX_SUPPORTED_CUBE_COUNT}`);
+    const cubes: CubeConfig[] = [];
+    for (let index = 0; index < gridSizes.length; index += 1) {
+      if (!Object.hasOwn(gridSizes, index)) throw new TypeError(`Grid size at index ${index} is missing`);
+      cubes.push({ id: makeCubeId(index), gridSize: gridSizes[index]! });
+    }
     return createSystemSpec(cubes);
   }
 
@@ -236,6 +261,7 @@ export class SlotIndexingEngine {
 
   /** Return the immutable configuration for a cube ID. */
   public getCube(cubeId: CubeId): CubeConfig {
+    assertNonNegativeSafeInteger(cubeId as number, 'CubeId');
     const layout = this.layoutByCubeId.get(cubeId);
     if (!layout) {
       throw new Error(`Unknown CubeId: ${String(cubeId)}`);
@@ -245,6 +271,7 @@ export class SlotIndexingEngine {
 
   /** Return the half-open global slot range occupied by a cube. */
   public getCubeSlotRange(cubeId: CubeId): SlotRange {
+    assertNonNegativeSafeInteger(cubeId as number, 'CubeId');
     const layout = this.layoutByCubeId.get(cubeId);
     if (!layout) {
       throw new Error(`Unknown CubeId: ${String(cubeId)}`);

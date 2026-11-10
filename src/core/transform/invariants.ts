@@ -1,12 +1,24 @@
 import { systemSpecKey } from "../geometry/index.js";
 import { encodePolynomial, Polynomial, PolynomialState, ringParameterKey } from "../polynomial/index.js";
 
+/**
+ * Describe the polynomial multiplicity API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface PolynomialMultiplicity {
   /** Canonical JSON string, not a cryptographic hash. */
   readonly encodingKey: string;
   readonly count: number;
 }
 
+/**
+ * Describe the state comparison API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface StateComparison {
   readonly sameSystem: boolean;
   readonly sameRing: boolean;
@@ -34,6 +46,12 @@ export function polynomialMultiset(
   );
 }
 
+/**
+ * Compare polynomial-value multisets while ignoring slot positions.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function samePolynomialMultiset(
   left: PolynomialState,
   right: PolynomialState,
@@ -71,6 +89,12 @@ export function aggregatePolynomial(state: PolynomialState) {
   return total;
 }
 
+/**
+ * Report structural and aggregate comparisons between two polynomial states.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function compareStates(
   before: PolynomialState,
   after: PolynomialState,

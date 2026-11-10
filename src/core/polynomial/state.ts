@@ -2,12 +2,18 @@ import {
   applyGlobalPermutation,
   isGlobalPermutation,
 } from '../geometry/global-moves.js';
-import type { SlotIndexingEngine } from '../geometry/indexing.js';
+import { SlotIndexingEngine } from '../geometry/indexing.js';
 import type { Permutation } from '../geometry/permutation.js';
 import { makeSlotId, type SlotId, type Coordinate } from '../geometry/types.js';
 import { Polynomial } from './polynomial.js';
-import { normalizeRingParameters, sameRing, type PolynomialRingParameters } from './parameters.js';
+import { normalizeRingParameters, sameRing, MAX_SUPPORTED_STATE_COEFFICIENTS, type PolynomialRingParameters } from './parameters.js';
 
+/**
+ * Callback that creates one polynomial value for each canonical slot and receives its coordinate.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type PolynomialInitializer = (slotId: SlotId, coordinate: Coordinate) => Polynomial;
 
 /**
@@ -15,8 +21,26 @@ export type PolynomialInitializer = (slotId: SlotId, coordinate: Coordinate) => 
  * Geometry remains payload-agnostic; this adapter is Layer 2's integration point.
  */
 export class PolynomialState {
+  /**
+   * Geometry indexer that defines this state's canonical global slot IDs.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly engine: SlotIndexingEngine;
+  /**
+   * Normalized polynomial ring shared by every value in this state.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ring: PolynomialRingParameters;
+  /**
+   * Frozen dense array of polynomial payloads, indexed by global SlotId.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly values: readonly Polynomial[];
 
   private constructor(
@@ -24,16 +48,24 @@ export class PolynomialState {
     ring: PolynomialRingParameters,
     values: readonly Polynomial[],
   ) {
+    assertStateCapacity(engine, ring);
     this.engine = engine;
     this.ring = normalizeRingParameters(ring);
     this.values = Object.freeze([...values]);
     Object.freeze(this);
   }
 
+  /**
+   * Construct the zero polynomial for a validated ring.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public static zero(
     engine: SlotIndexingEngine,
     ring: PolynomialRingParameters,
   ): PolynomialState {
+    assertStateCapacity(engine, ring);
     const normalizedRing = normalizeRingParameters(ring);
     const zero = Polynomial.zero(normalizedRing);
     return new PolynomialState(
@@ -43,11 +75,18 @@ export class PolynomialState {
     );
   }
 
+  /**
+   * Create a state from a dense array of ring-compatible polynomial values.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public static fromValues(
     engine: SlotIndexingEngine,
     ring: PolynomialRingParameters,
     values: readonly Polynomial[],
   ): PolynomialState {
+    assertStateCapacity(engine, ring);
     const normalizedRing = normalizeRingParameters(ring);
     if (!Array.isArray(values)) {
       throw new TypeError('values must be an array of Polynomial instances');
@@ -59,7 +98,10 @@ export class PolynomialState {
     }
     for (let index = 0; index < values.length; index += 1) {
       // Index-based access also rejects sparse arrays, which Array#forEach skips.
-      const value = values[index];
+      if (!Object.hasOwn(values, index)) throw new TypeError(`State value at slot ${index} is not a Polynomial; values are sparse at slot ${index}`);
+      const descriptor = Object.getOwnPropertyDescriptor(values, String(index));
+      if (!descriptor || !('value' in descriptor)) throw new TypeError(`State value at slot ${index} must be a data property`);
+      const value = descriptor.value;
       if (!(value instanceof Polynomial)) {
         throw new TypeError(`State value at slot ${index} is not a Polynomial`);
       }
@@ -70,6 +112,12 @@ export class PolynomialState {
     return new PolynomialState(engine, normalizedRing, values);
   }
 
+  /**
+   * Create a state by invoking a caller initializer once for each canonical slot.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public static fromInitializer(
     engine: SlotIndexingEngine,
     ring: PolynomialRingParameters,
@@ -78,6 +126,7 @@ export class PolynomialState {
     if (typeof initializer !== 'function') {
       throw new TypeError('initializer must be a function');
     }
+    assertStateCapacity(engine, ring);
     const normalizedRing = normalizeRingParameters(ring);
     const values = Array<Polynomial>(engine.spec.totalSlots);
     for (const entry of engine.entries()) {
@@ -93,6 +142,12 @@ export class PolynomialState {
     return new PolynomialState(engine, normalizedRing, values);
   }
 
+  /**
+   * Return the polynomial stored at a validated global slot identifier.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public get(slotId: SlotId): Polynomial {
     const index = this.validateSlotId(slotId);
     return this.values[index]!;
@@ -123,6 +178,12 @@ export class PolynomialState {
     return PolynomialState.fromValues(this.engine, this.ring, permuted);
   }
 
+  /**
+   * Return a new state produced by mapping every polynomial value.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public mapValues(mapper: (
     slotId: SlotId,
     coordinate: Coordinate,
@@ -146,6 +207,12 @@ export class PolynomialState {
     return new PolynomialState(this.engine, this.ring, next);
   }
 
+  /**
+   * Compare complete geometry, ring, and polynomial-state contents.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public equals(other: PolynomialState): boolean {
     if (!(other instanceof PolynomialState) || !sameRing(this.ring, other.ring)) {
       return false;
@@ -178,4 +245,25 @@ function sameSystemSpec(left: SlotIndexingEngine, right: SlotIndexingEngine): bo
     const other = right.spec.cubes[index];
     return other !== undefined && cube.id === other.id && cube.gridSize === other.gridSize;
   });
+}
+
+
+/**
+ * Reject incompatible engine objects and state sizes before allocating dense
+ * polynomial arrays.
+ */
+function assertStateCapacity(
+  engine: SlotIndexingEngine,
+  ring: PolynomialRingParameters,
+): void {
+  if (!(engine instanceof SlotIndexingEngine)) {
+    throw new TypeError('A valid SlotIndexingEngine instance is required');
+  }
+  const normalizedRing = normalizeRingParameters(ring);
+  const coefficientCount = engine.spec.totalSlots * normalizedRing.degree;
+  if (!Number.isSafeInteger(coefficientCount) || coefficientCount > MAX_SUPPORTED_STATE_COEFFICIENTS) {
+    throw new RangeError(
+      `Polynomial state requires ${coefficientCount} coefficients; the supported limit is ${MAX_SUPPORTED_STATE_COEFFICIENTS}`,
+    );
+  }
 }

@@ -30,6 +30,7 @@ import {
   RingAutomorphism,
   type PolynomialStateTransformation,
   type TransformationKind,
+  validateTransformationName,
 } from "./core/transform/index.js";
 
 /** Configuration for a PPG Engine instance. */
@@ -43,10 +44,24 @@ export interface PPGEngineConfig {
   readonly ring: Pick<PolynomialRingParameters, "modulus" | "degree">;
   /** Optional initial polynomial value for every canonical geometry slot. */
   readonly initialize?: PolynomialInitializer;
+  /** Maximum retained undo history; defaults to 1000 (0 disables history). */
+  readonly maxHistoryEntries?: number;
 }
 
+/**
+ * Describes the operation categories recorded in the PPGEngine history timeline.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type PPGEngineOperationKind = TransformationKind | "state-edit";
 
+/**
+ * Immutable metadata for one successfully committed engine operation.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface PPGEngineHistoryEntry {
   readonly id: number;
   readonly kind: PPGEngineOperationKind;
@@ -70,8 +85,26 @@ interface HistoryFrame {
  * primitive. JavaScript BigInt arithmetic is not guaranteed constant-time.
  */
 export class PPGEngine {
+  /**
+   * Validated immutable cube specification that defines this engine's canonical slot order.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly systemSpec: SystemSpec;
+  /**
+   * Layer 1 indexer used for coordinate, slot, move, and topology operations.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly geometry: SlotIndexingEngine;
+  /**
+   * Layer 2 quotient-ring parameters shared by every polynomial in the current state.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ring: PolynomialRingParameters;
 
   private baselineState: PolynomialState;
@@ -80,26 +113,40 @@ export class PPGEngine {
   private readonly redoFrames: HistoryFrame[] = [];
   private readonly operationHistory: PPGEngineHistoryEntry[] = [];
   private nextOperationId = 1;
+  private readonly maxHistoryEntries: number;
 
+  /**
+   * Construct an engine, validate its geometry and ring configuration, and initialize its baseline state.
+ *
+ * @param config Cube layout, polynomial-ring parameters, optional initializer, and history limit.
+ * @throws {TypeError} If the configuration or cube collection has an invalid runtime shape.
+ * @throws {RangeError} If a resource limit or mathematical parameter constraint is exceeded.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public constructor(config: PPGEngineConfig) {
     if (config === null || typeof config !== "object") {
       throw new TypeError("PPGEngine configuration must be an object");
     }
-    if (!Array.isArray(config.cubes) || config.cubes.length === 0) {
-      throw new RangeError("config.cubes must contain at least one cube");
+    if (!Array.isArray(config.cubes)) throw new TypeError("config.cubes must be an array");
+    for (let index = 0; index < config.cubes.length; index += 1) {
+      if (!Object.hasOwn(config.cubes, index)) throw new TypeError(`config.cubes is sparse at index ${index}`);
     }
-
-    const usesGridSizes = config.cubes.every((cube) => typeof cube === "number");
-    const usesCubeConfigs = config.cubes.every(
+    const usesGridSizes = config.cubes.length > 0 && config.cubes.every((cube) => typeof cube === "number");
+    const usesCubeConfigs = config.cubes.length > 0 && config.cubes.every(
       (cube) => cube !== null && typeof cube === "object" && !Array.isArray(cube),
     );
-    if (!usesGridSizes && !usesCubeConfigs) {
-      throw new TypeError("config.cubes must contain only grid sizes or only CubeConfig objects");
-    }
+    if (config.cubes.length === 0) this.systemSpec = SlotIndexingEngine.createSpec([]);
+    else if (usesGridSizes) this.systemSpec = SlotIndexingEngine.createSpec(config.cubes as readonly number[]);
+    else if (usesCubeConfigs) this.systemSpec = createSystemSpec(config.cubes as readonly CubeConfig[]);
+    else throw new TypeError("config.cubes must contain only grid sizes or only CubeConfig objects");
 
-    this.systemSpec = usesGridSizes
-      ? SlotIndexingEngine.createSpec(config.cubes as readonly number[])
-      : createSystemSpec(config.cubes as readonly CubeConfig[]);
+    const historyLimit = config.maxHistoryEntries ?? 1_000;
+    if (!Number.isSafeInteger(historyLimit) || historyLimit < 0 || historyLimit > 10_000) {
+      throw new RangeError("maxHistoryEntries must be an integer between 0 and 10000");
+    }
+    this.maxHistoryEntries = historyLimit;
     this.geometry = new SlotIndexingEngine(this.systemSpec);
     this.ring = createRingParameters(config.ring?.modulus, config.ring?.degree);
 
@@ -116,6 +163,12 @@ export class PPGEngine {
     return this.currentState;
   }
 
+  /**
+   * Return the total canonical facelet-slot count.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public get totalSlots(): number {
     return this.systemSpec.totalSlots;
   }
@@ -134,7 +187,7 @@ export class PPGEngine {
       throw new RangeError("State belongs to a different ordered geometry specification");
     }
     if (!sameRing(state.ring, this.ring)) {
-      throw new RangeError("State uses incompatible polynomial ring parameters");
+      throw new RangeError("State uses incompatible ring parameters");
     }
 
     const normalized = PolynomialState.fromValues(this.geometry, this.ring, state.values);
@@ -164,8 +217,9 @@ export class PPGEngine {
     if (!sameRing(value.ring, this.ring)) {
       throw new RangeError("Polynomial uses incompatible ring parameters");
     }
-    const next = this.currentState.withValue(this.normalizeSlot(slot), value);
-    return this.commit(next, "state-edit", `set-slot-${Number(slot)}`);
+    const normalizedSlot = this.normalizeSlot(slot);
+    const next = this.currentState.withValue(normalizedSlot, value);
+    return this.commit(next, "state-edit", `set-slot-${Number(normalizedSlot)}`);
   }
 
   /**
@@ -227,9 +281,8 @@ export class PPGEngine {
     transformations: readonly PolynomialStateTransformation[],
     name = "transformation-sequence",
   ): PolynomialState {
-    if (!Array.isArray(transformations)) {
-      throw new TypeError("transformations must be an array");
-    }
+    if (!Array.isArray(transformations)) throw new TypeError("transformations must be an array");
+    validateTransformationName(name);
     if (transformations.length === 0) return this.currentState;
 
     const sequence = composeTransformations(
@@ -366,16 +419,26 @@ export class PPGEngine {
     kind: PPGEngineOperationKind,
     name: string,
   ): PolynomialState {
+    if (!(next instanceof PolynomialState) || systemSpecKey(next.engine) !== systemSpecKey(this.geometry) || !sameRing(next.ring, this.ring)) {
+      throw new RangeError("Cannot commit a state incompatible with this PPGEngine");
+    }
+    validateTransformationName(name);
     const entry: PPGEngineHistoryEntry = Object.freeze({
       id: this.nextOperationId++,
       kind,
       name,
       appliedAt: Date.now(),
     });
-    this.undoFrames.push({ state: this.currentState, entry });
+    if (this.maxHistoryEntries > 0) {
+      this.undoFrames.push({ state: this.currentState, entry });
+      this.operationHistory.push(entry);
+      if (this.undoFrames.length > this.maxHistoryEntries) {
+        this.undoFrames.shift();
+        this.operationHistory.shift();
+      }
+    }
     this.redoFrames.length = 0;
     this.currentState = next;
-    this.operationHistory.push(entry);
     return this.currentState;
   }
 
@@ -391,11 +454,13 @@ export function createPPGEngineConfig(
   cubes: readonly { readonly id: number; readonly gridSize: number }[],
   ring: Pick<PolynomialRingParameters, "modulus" | "degree">,
 ): PPGEngineConfig {
-  return {
-    cubes: cubes.map((cube) => ({
-      id: makeCubeId(cube.id),
-      gridSize: cube.gridSize,
-    })),
-    ring,
-  };
+  if (!Array.isArray(cubes)) throw new TypeError("cubes must be an array");
+  const normalized: CubeConfig[] = [];
+  for (let index = 0; index < cubes.length; index += 1) {
+    if (!Object.hasOwn(cubes, index)) throw new TypeError(`Cube configuration at index ${index} is missing`);
+    const cube = cubes[index];
+    if (cube === null || typeof cube !== "object" || Array.isArray(cube)) throw new TypeError(`Cube configuration at index ${index} is malformed`);
+    normalized.push({ id: makeCubeId(cube.id), gridSize: cube.gridSize });
+  }
+  return { cubes: normalized, ring };
 }

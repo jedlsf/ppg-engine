@@ -1,4 +1,4 @@
-import { FaceId, makeSlotId } from './types.js';
+import { FaceId, isFaceId, makeSlotId } from './types.js';
 import type { Coordinate, CubeId, SlotId } from './types.js';
 import type { SlotIndexingEngine } from './indexing.js';
 import {
@@ -8,14 +8,26 @@ import {
   type GridPosition,
 } from './surface.js';
 import { transformGridPosition, transformNormal } from './placement.js';
-import { systemSpecKey } from './topology.js';
+import { createCubeNetwork, systemSpecKey } from './topology.js';
 import type { FaceAdjacency, CubeNetwork } from './topology.js';
 
+/**
+ * Describe the face cell pair API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface FaceCellPair {
   readonly slotA: SlotId;
   readonly slotB: SlotId;
 }
 
+/**
+ * Describe the face connection mapping status API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type FaceConnectionMappingStatus = 'bijective' | 'different-resolution';
 
 /**
@@ -85,12 +97,22 @@ export function resolveFaceConnection(
   network: CubeNetwork,
   adjacencyInput: FaceAdjacency,
 ): ResolvedFaceConnection {
+  if (network === null || typeof network !== 'object' ||
+      typeof network.systemKey !== 'string' ||
+      !Array.isArray(network.placements) || !Array.isArray(network.connections)) {
+    throw new TypeError('CubeNetwork is malformed');
+  }
   if (network.systemKey !== systemSpecKey(engine)) {
     throw new Error('CubeNetwork was built for a different SystemSpec');
   }
-  const adjacency = findNetworkAdjacency(network, adjacencyInput);
-  const placementA = network.placements.find((p) => p.cubeId === adjacency.cubeA);
-  const placementB = network.placements.find((p) => p.cubeId === adjacency.cubeB);
+  const validatedNetwork = createCubeNetwork(engine, network.placements);
+  if (adjacencyInput === null || typeof adjacencyInput !== 'object' ||
+      !isFaceId(adjacencyInput.faceA) || !isFaceId(adjacencyInput.faceB)) {
+    throw new TypeError('Face adjacency is malformed');
+  }
+  const adjacency = findNetworkAdjacency(validatedNetwork, adjacencyInput);
+  const placementA = validatedNetwork.placements.find((p) => p.cubeId === adjacency.cubeA);
+  const placementB = validatedNetwork.placements.find((p) => p.cubeId === adjacency.cubeB);
   if (!placementA || !placementB) throw new Error('Connection references a cube without a placement');
 
   const gridSizeA = engine.getCube(adjacency.cubeA).gridSize;
@@ -104,7 +126,7 @@ export function resolveFaceConnection(
   if (gridSizeA !== gridSizeB) {
     return Object.freeze({
       ...adjacency,
-      systemKey: network.systemKey,
+      systemKey: validatedNetwork.systemKey,
       gridSizeA,
       gridSizeB,
       mappingStatus: 'different-resolution' as const,
@@ -145,7 +167,7 @@ export function resolveFaceConnection(
 
   return Object.freeze({
     ...adjacency,
-    systemKey: network.systemKey,
+    systemKey: validatedNetwork.systemKey,
     gridSizeA,
     gridSizeB,
     mappingStatus: 'bijective' as const,
@@ -158,13 +180,20 @@ export function resolveFaceConnections(
   engine: SlotIndexingEngine,
   network: CubeNetwork,
 ): readonly ResolvedFaceConnection[] {
-  if (network.systemKey !== systemSpecKey(engine)) {
-    throw new Error('CubeNetwork was built for a different SystemSpec');
+  if (network === null || typeof network !== 'object' ||
+      typeof network.systemKey !== 'string' ||
+      !Array.isArray(network.placements) || !Array.isArray(network.connections)) {
+    throw new TypeError('CubeNetwork is malformed');
   }
-  return Object.freeze(network.connections.map((connection) => resolveFaceConnection(engine, network, connection)));
+  if (network.systemKey !== systemSpecKey(engine)) throw new Error('CubeNetwork was built for a different SystemSpec');
+  const validated = createCubeNetwork(engine, network.placements);
+  return Object.freeze(validated.connections.map((connection) => resolveFaceConnection(engine, validated, connection)));
 }
 
 /** Utility for consumer tests and callers that want only the mapped slot IDs. */
 export function facePairSlots(pair: FaceCellPair): readonly [SlotId, SlotId] {
-  return Object.freeze([makeSlotId(Number(pair.slotA)), makeSlotId(Number(pair.slotB))] as const);
+  if (pair === null || typeof pair !== 'object' || typeof pair.slotA !== 'number' || typeof pair.slotB !== 'number') {
+    throw new TypeError('FaceCellPair must contain numeric slotA and slotB values');
+  }
+  return Object.freeze([makeSlotId(pair.slotA), makeSlotId(pair.slotB)] as const);
 }

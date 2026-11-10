@@ -20,14 +20,38 @@ export type CubeOrientationId = number & {
   readonly [cubeOrientationBrand]: 'CubeOrientationId';
 };
 
+/**
+ * Describe the matrix row API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type MatrixRow = readonly [number, number, number];
+/**
+ * Describe the rotation matrix API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type RotationMatrix = readonly [MatrixRow, MatrixRow, MatrixRow];
 
+/**
+ * Describe the cube orientation API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface CubeOrientation {
   readonly id: CubeOrientationId;
   readonly matrix: RotationMatrix;
 }
 
+/**
+ * Describe the cube placement API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface CubePlacement {
   readonly cubeId: CubeId;
   /** Integer lattice cell occupied by this unit-sized cube. */
@@ -103,8 +127,20 @@ export const CUBE_ORIENTATIONS: readonly CubeOrientation[] = Object.freeze(
   })),
 );
 
+/**
+ * Describe the identity_orientation API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export const IDENTITY_ORIENTATION = CUBE_ORIENTATIONS[0]!.id;
 
+/**
+ * Create a validated index into the 24 proper cube orientations.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function makeCubeOrientationId(value: number): CubeOrientationId {
   if (!Number.isSafeInteger(value) || value < 0 || value >= CUBE_ORIENTATIONS.length) {
     throw new RangeError(`CubeOrientationId must be an integer in [0, 23]; received ${String(value)}`);
@@ -112,10 +148,22 @@ export function makeCubeOrientationId(value: number): CubeOrientationId {
   return value as CubeOrientationId;
 }
 
+/**
+ * Check whether a runtime value identifies one of the 24 cube orientations.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function isCubeOrientationId(value: unknown): value is CubeOrientationId {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value < 24;
 }
 
+/**
+ * Return an immutable proper cube orientation by identifier.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function getCubeOrientation(id: CubeOrientationId): CubeOrientation {
   if (!isCubeOrientationId(id)) {
     throw new RangeError(`Invalid CubeOrientationId: ${String(id)}`);

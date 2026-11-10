@@ -10,6 +10,7 @@ import {
   assertStateMatchesContext,
   createTransformationContext,
   type PolynomialStateTransformation,
+  validateTransformationName,
 } from "./types.js";
 
 /** Greatest common divisor for non-negative safe integers. */
@@ -62,15 +63,58 @@ export function modularInverseNumber(value: number, modulus: number): number {
  * this substitution automorphism does not require q to be prime.
  */
 export class RingAutomorphism implements PolynomialStateTransformation {
+  /**
+   * Identifies this transformation as a quotient-ring substitution automorphism.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly kind = "ring-automorphism" as const;
+  /**
+   * History-safe label for diagnostics and composed transformation reporting.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly name: string;
+  /**
+   * Structural geometry key to which this state-wide automorphism is bound.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly systemKey: string;
+  /**
+   * Structural polynomial-ring key required for applying this automorphism.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ringKey: string;
+  /**
+   * Normalized quotient-ring parameters used for the substitution.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ring: PolynomialRingParameters;
   /** Canonical exponent in [1, 2n - 1]. */
   public readonly exponent: number;
   private readonly engine: SlotIndexingEngine;
 
+  /**
+   * Construct the substitution X → X^k when its exponent defines an automorphism modulo X^n + 1.
+   *
+   * @param engine Geometry indexer that binds the state context.
+   * @param ring Polynomial quotient-ring parameters.
+   * @param exponent Positive exponent; its canonical representative must be coprime to 2n.
+   * @param name Optional validated transformation label.
+   * @throws {TypeError} If the engine or label has an invalid runtime type.
+   * @throws {RangeError} If the exponent does not define a valid ring automorphism.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public constructor(
     engine: SlotIndexingEngine,
     ring: PolynomialRingParameters,
@@ -92,12 +136,7 @@ export class RingAutomorphism implements PolynomialStateTransformation {
       );
     }
     const normalizedName = name ?? `X->X^${canonicalExponent}`;
-    if (
-      typeof normalizedName !== "string" ||
-      normalizedName.trim().length === 0
-    ) {
-      throw new TypeError("name must be a non-empty string");
-    }
+    validateTransformationName(normalizedName);
     this.engine = engine;
     this.ring = context.ring;
     this.systemKey = context.systemKey;
@@ -107,6 +146,12 @@ export class RingAutomorphism implements PolynomialStateTransformation {
     Object.freeze(this);
   }
 
+  /**
+   * Apply this ring automorphism to one compatible polynomial.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public applyPolynomial(polynomial: Polynomial): Polynomial {
     if (!(polynomial instanceof Polynomial)) {
       throw new TypeError("polynomial must be a Polynomial");
@@ -134,6 +179,12 @@ export class RingAutomorphism implements PolynomialStateTransformation {
     return Polynomial.fromCanonicalCoefficients(this.ring, output);
   }
 
+  /**
+   * Apply the ordered transformation steps to a compatible polynomial state.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public apply(state: PolynomialState): PolynomialState {
     assertStateMatchesContext(state, this.systemKey, this.ringKey);
     return state.mapValues((_slot, _coordinate, current) =>
@@ -141,6 +192,12 @@ export class RingAutomorphism implements PolynomialStateTransformation {
     );
   }
 
+  /**
+   * Construct the inverse sequence by reversing and inverting every step.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public inverse(): RingAutomorphism {
     const inverseExponent = modularInverseNumber(
       this.exponent,

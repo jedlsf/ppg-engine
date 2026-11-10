@@ -1,7 +1,7 @@
 {
   "name": "ppg-engine",
   "version": "0.1.0",
-  "description": "A TypeScript engine for geometric, polynomial, and reversible state transformations.",
+  "description": "A TypeScript library for cube-facelet state, modular polynomial values, and reversible geometric and algebraic transformations.",
   "type": "module",
   "license": "MIT",
   "author": "Zelijah",
@@ -43,11 +43,17 @@
   },
   "keywords": [
     "ppg",
+    "polynomial-permutation-geometry",
     "geometry",
+    "cube-geometry",
+    "facelet",
     "polynomial",
+    "polynomial-ring",
+    "modular-arithmetic",
     "permutation",
-    "state-engine",
-    "transformation",
+    "reversible-transformations",
+    "state-transformation",
+    "puzzle-engine",
     "typescript",
     "algebra"
   ],
@@ -56,14 +62,17 @@
     "url": "https://github.com/jedlsf/ppg-engine/issues"
   },
   "scripts": {
-    "build": "npx --yes --package typescript@5.9.3 tsc -p tsconfig.build.json",
-    "typecheck": "npx --yes --package typescript@5.9.3 tsc --noEmit -p tsconfig.json",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:geometry": "vitest run tests/geometry",
     "test:polynomial": "vitest run tests/polynomial",
     "test:transform": "vitest run tests/transform",
     "test:engine": "vitest run tests/engine",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "test:integration": "vitest run tests/integration tests/engine/ppg-engine.integration.test.ts tests/transform/integration.test.ts",
+    "test:security": "vitest run tests/geometry/security-validation.test.ts tests/polynomial/adversarial.test.ts",
+    "test:layers": "vitest run tests/geometry tests/polynomial tests/transform tests/engine tests/integration"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

@@ -5,6 +5,7 @@ import {
   assertStateMatchesContext,
   createTransformationContext,
   type PolynomialStateTransformation,
+  validateTransformationName,
 } from './types.js';
 
 /**
@@ -14,16 +15,79 @@ import {
  * Its inverse subtracts the same product. Coefficient need not be a unit.
  */
 export class PolynomialCoupling implements PolynomialStateTransformation {
+  /**
+   * Identifies this transformation as an elementary polynomial shear.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly kind = 'coupling' as const;
+  /**
+   * History-safe label for diagnostics and composed transformation reporting.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly name: string;
+  /**
+   * Structural geometry key to which this transformation is bound.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly systemKey: string;
+  /**
+   * Structural polynomial-ring key to which this transformation is bound.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ringKey: string;
+  /**
+   * Normalized ring in which the coupling coefficient and state values are interpreted.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ring: PolynomialRingParameters;
+  /**
+   * Slot whose polynomial payload is read but left unchanged by the shear.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly sourceSlot: SlotId;
+  /**
+   * Slot updated by adding coefficient multiplied by the source payload.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly targetSlot: SlotId;
+  /**
+   * Return one coefficient by its ascending-degree index.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly coefficient: Polynomial;
   private readonly engine: SlotIndexingEngine;
 
+  /**
+   * Create an invertible elementary shear between two distinct slots.
+   *
+   * @param engine Geometry indexer defining the slot address space.
+   * @param ring Polynomial ring shared by the input state and coefficient.
+   * @param sourceSlot Slot whose current polynomial is used as the source.
+   * @param targetSlot Distinct slot whose value receives the shear contribution.
+   * @param coefficient Ring element multiplied by the source value.
+   * @param name Optional validated history label.
+   * @throws {TypeError} If the engine, coefficient, or label has an invalid runtime type.
+   * @throws {RangeError} If slots are invalid, identical, or use incompatible ring parameters.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public constructor(
     engine: SlotIndexingEngine,
     ring: PolynomialRingParameters,
@@ -33,9 +97,7 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
     name = 'polynomial-coupling',
   ) {
     const context = createTransformationContext(engine, ring);
-    if (typeof name !== 'string' || name.trim().length === 0) {
-      throw new TypeError('name must be a non-empty string');
-    }
+    validateTransformationName(name);
     const source = validateSlot(engine, sourceSlot, 'sourceSlot');
     const target = validateSlot(engine, targetSlot, 'targetSlot');
     if (source === target) {
@@ -59,6 +121,12 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
     Object.freeze(this);
   }
 
+  /**
+   * Apply the ordered transformation steps to a compatible polynomial state.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public apply(state: PolynomialState): PolynomialState {
     assertStateMatchesContext(state, this.systemKey, this.ringKey);
     const source = state.get(this.sourceSlot);
@@ -67,6 +135,12 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
     return state.withValue(this.targetSlot, updatedTarget);
   }
 
+  /**
+   * Construct the inverse sequence by reversing and inverting every step.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public inverse(): PolynomialCoupling {
     return new PolynomialCoupling(
       this.engine,
@@ -79,6 +153,12 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
   }
 }
 
+/**
+ * Create a validated polynomial coupling transformation.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function createPolynomialCoupling(
   engine: SlotIndexingEngine,
   ring: PolynomialRingParameters,
