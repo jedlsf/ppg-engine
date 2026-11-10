@@ -83,7 +83,7 @@ export function faceForNormal(normal: FaceNormal): FaceId {
     }
   }
   const nonZeroComponents = [normal.x, normal.y, normal.z].filter((value) => value !== 0).length;
-  if (nonZeroComponents !== 1) throw new RangeError('Face normal must have exactly one non-zero component');
+  if (nonZeroComponents !== 1) throw new RangeError('Face normal must be an axis-aligned unit normal with exactly one non-zero component');
   const faceId = FACE_BY_NORMAL_KEY.get(normalKey(normal));
   if (faceId === undefined) {
     throw new RangeError(

@@ -140,11 +140,11 @@ export function assertTransformationCompatible(
  */
 export function validateTransformationName(name: unknown): asserts name is string {
   if (typeof name !== "string") throw new TypeError("Transformation name must be a string");
-  if (name.trim().length === 0) throw new RangeError("Transformation name must not be empty");
-  if (name.length > MAX_TRANSFORMATION_NAME_LENGTH) {
-    throw new RangeError(`Transformation name exceeds ${MAX_TRANSFORMATION_NAME_LENGTH} characters`);
-  }
   if (/[\u0000-\u001f\u007f]/.test(name)) {
     throw new RangeError("Transformation name must not contain control characters");
+  }
+  if (name.trim().length === 0) throw new RangeError("Transformation name must be non-empty");
+  if (name.length > MAX_TRANSFORMATION_NAME_LENGTH) {
+    throw new RangeError(`Transformation name exceeds ${MAX_TRANSFORMATION_NAME_LENGTH} characters`);
   }
 }
