@@ -1,8 +1,16 @@
-# PPG Engine
+# Polynomial Permutation Geometry (PPG) Engine
 
-**PPG Engine** is a TypeScript engine for building and transforming structured polynomial states over cube-based geometry.
+**PPG** stands for **Polynomial Permutation Geometry**—the three ideas the engine brings together:
 
-It consolidates the reusable first three layers of the former Majik Rubik research project into one usable library:
+- **Geometry** describes cube-based layouts: positions, orientations, and which positions are connected.
+- **Polynomials** provide exact, modular values that can be stored in those positions and changed through algebraic operations.
+- **Permutations** move those values between positions, making operations such as turns and other state changes explicit and reversible.
+
+In everyday terms, PPG Engine is a TypeScript library for programs that need to represent an organized, cube-like state and change it in well-defined ways. Picture a set of connected positions, each holding a value: the engine describes the layout and provides operations to rearrange or transform the values, with undo and redo.
+
+You can use it as a building block in TypeScript projects such as puzzle or game mechanics, deterministic simulations, and research or education prototypes involving structured states and reversible operations. It is a reusable mathematical engine, not a finished game, visual interface, general-purpose physics simulator, or domain-specific application.
+
+The engine brings together the reusable first three layers of the former Majik Rubik research project:
 
 | Layer | Responsibility |
 |---|---|
@@ -312,4 +320,3 @@ Developed by **Josef Elijah Fabian (Zelijah)** | [Zelijah](https://thezelijah.wo
 
 - **Business Email**: [business@majikah.solutions](mailto:business@majikah.solutions)
 - **Official Website**: [https://www.thezelijah.world](https://www.thezelijah.world)
-- **Majikah Ecosystem**: [https://majikah.solutions](https://majikah.solutions)
