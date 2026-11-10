@@ -228,4 +228,22 @@ npm run test:engine
 
 ## License
 
-Apache-2.0. See [LICENSE](./LICENSE).
+**License:** [MIT](LICENSE) — free for personal and commercial use.
+
+## Author
+
+Developed by **Josef Elijah Fabian (Zelijah)** | [Zelijah](https://thezelijah.world)
+
+**Developer**: [Josef Elijah Fabian](https://github.com/jedlsf)
+
+**GitHub**: [https://github.com/jedlsf](https://github.com/jedlsf)
+
+**Project Repository**: [https://github.com/jedlsf/ppg-engine](https://github.com/jedlsf/ppg-engine)
+
+---
+
+## Contact
+
+- **Business Email**: [business@majikah.solutions](mailto:business@majikah.solutions)
+- **Official Website**: [https://www.thezelijah.world](https://www.thezelijah.world)
+- **Majikah Ecosystem**: [https://majikah.solutions](https://majikah.solutions)

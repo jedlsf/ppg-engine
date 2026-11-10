@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "A TypeScript engine for geometric, polynomial, and reversible state transformations.",
   "type": "module",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "author": "Zelijah",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
