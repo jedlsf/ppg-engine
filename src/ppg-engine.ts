@@ -49,7 +49,7 @@ export interface PPGEngineConfig {
 }
 
 /**
- * Describe the ppgengine operation kind API.
+ * Describes the operation categories recorded in the PPGEngine history timeline.
  *
  * @remarks Public entry points validate runtime values and preserve the
  * documented immutable-state and resource-boundary contracts.
@@ -57,7 +57,7 @@ export interface PPGEngineConfig {
 export type PPGEngineOperationKind = TransformationKind | "state-edit";
 
 /**
- * Describe the ppgengine history entry API.
+ * Immutable metadata for one successfully committed engine operation.
  *
  * @remarks Public entry points validate runtime values and preserve the
  * documented immutable-state and resource-boundary contracts.
@@ -86,21 +86,21 @@ interface HistoryFrame {
  */
 export class PPGEngine {
   /**
-   * Provide the system spec operation.
+   * Validated immutable cube specification that defines this engine's canonical slot order.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly systemSpec: SystemSpec;
   /**
-   * Provide the geometry operation.
+   * Layer 1 indexer used for coordinate, slot, move, and topology operations.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly geometry: SlotIndexingEngine;
   /**
-   * Provide the ring operation.
+   * Layer 2 quotient-ring parameters shared by every polynomial in the current state.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
@@ -116,7 +116,11 @@ export class PPGEngine {
   private readonly maxHistoryEntries: number;
 
   /**
-   * function Object() { [native code] }
+   * Construct an engine, validate its geometry and ring configuration, and initialize its baseline state.
+ *
+ * @param config Cube layout, polynomial-ring parameters, optional initializer, and history limit.
+ * @throws {TypeError} If the configuration or cube collection has an invalid runtime shape.
+ * @throws {RangeError} If a resource limit or mathematical parameter constraint is exceeded.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.

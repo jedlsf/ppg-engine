@@ -11,42 +11,42 @@ import {
 /** Apply a Layer 1 global slot permutation to a Layer 2 polynomial state. */
 export class PermutationAction implements PolynomialStateTransformation {
   /**
-   * Provide the kind operation.
+   * Identifies this transformation as a Layer 1 global slot permutation.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly kind = 'permutation' as const;
   /**
-   * Provide the name operation.
+   * History-safe label for diagnostics and composed transformation reporting.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly name: string;
   /**
-   * Provide the system key operation.
+   * Structural geometry key to which this permutation action is bound.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly systemKey: string;
   /**
-   * Provide the ring key operation.
+   * Structural polynomial-ring key to which this permutation action is bound.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ringKey: string;
   /**
-   * Provide the ring operation.
+   * Normalized ring of the polynomial state on which the permutation acts.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ring: PolynomialRingParameters;
   /**
-   * Provide the permutation operation.
+   * Detached, validated immutable permutation mapping source slots to destination slots.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
@@ -55,7 +55,14 @@ export class PermutationAction implements PolynomialStateTransformation {
   private readonly engine: SlotIndexingEngine;
 
   /**
-   * function Object() { [native code] }
+   * Bind a validated global permutation to one geometry/ring context.
+   *
+   * @param engine Geometry indexer defining the complete slot space.
+   * @param ring Polynomial ring shared by the state being transformed.
+   * @param permutation Bijection over every global slot in the supplied geometry.
+   * @param name Optional validated history label.
+   * @throws {TypeError} If the label or permutation shape is malformed.
+   * @throws {RangeError} If the permutation does not cover the engine's global slot space.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
