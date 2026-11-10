@@ -107,11 +107,7 @@ export class Polynomial {
     const copied = new Array<bigint>(normalizedRing.degree);
     for (let index = 0; index < normalizedRing.degree; index += 1) {
       // Index-based access also rejects sparse arrays, which Array#map skips.
-<<<<<<< HEAD
       if (!Object.hasOwn(coefficients, index)) throw new TypeError(`coefficient ${index} must be a bigint; coefficient array is sparse at index ${index}`);
-=======
-      if (!Object.hasOwn(coefficients, index)) throw new TypeError(`Coefficient array is sparse at index ${index}; coefficient must be a bigint`);
->>>>>>> 489af57ef9c58bed47e540a007e5bd9af1edcd25
       const descriptor = Object.getOwnPropertyDescriptor(coefficients, String(index));
       if (!descriptor || !('value' in descriptor)) throw new TypeError(`Coefficient at index ${index} must be a data property`);
       const coefficient = descriptor.value;

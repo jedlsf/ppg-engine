@@ -187,11 +187,7 @@ export class PPGEngine {
       throw new RangeError("State belongs to a different ordered geometry specification");
     }
     if (!sameRing(state.ring, this.ring)) {
-<<<<<<< HEAD
       throw new RangeError("State uses incompatible ring parameters");
-=======
-      throw new RangeError("State uses incompatible ring parameters (polynomial ring mismatch)");
->>>>>>> 489af57ef9c58bed47e540a007e5bd9af1edcd25
     }
 
     const normalized = PolynomialState.fromValues(this.geometry, this.ring, state.values);
