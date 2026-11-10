@@ -8,7 +8,7 @@ import {
   type GridPosition,
 } from './surface.js';
 import { transformGridPosition, transformNormal } from './placement.js';
-import { systemSpecKey } from './topology.js';
+import { createCubeNetwork, systemSpecKey } from './topology.js';
 import type { FaceAdjacency, CubeNetwork } from './topology.js';
 
 /**

@@ -53,7 +53,7 @@ export function createFaceExchangePermutation(
   const touched = new Set<number>();
   for (let pairIndex = 0; pairIndex < connection.pairs.length; pairIndex += 1) {
     if (!Object.hasOwn(connection.pairs, pairIndex)) throw new TypeError(`Connection pair ${pairIndex} is missing`);
-    const pair = connection.pairs[pairIndex];
+    const pair: ResolvedFaceConnection['pairs'][number] = connection.pairs[pairIndex]!;
     if (pair === null || typeof pair !== 'object' || typeof pair.slotA !== 'number' || typeof pair.slotB !== 'number') {
       throw new TypeError(`Connection pair ${pairIndex} is malformed`);
     }
