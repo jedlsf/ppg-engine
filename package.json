@@ -1,5 +1,5 @@
 {
-  "name": "ppg-engine",
+  "name": "@thezelijah/ppg-engine",
   "version": "0.1.0",
   "description": "A TypeScript library for cube-facelet state, modular polynomial values, and reversible geometric and algebraic transformations.",
   "type": "module",
