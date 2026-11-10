@@ -1,0 +1,72 @@
+{
+  "name": "ppg-engine",
+  "version": "0.1.0",
+  "description": "A TypeScript engine for geometric, polynomial, and reversible state transformations.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "author": "Zelijah",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./geometry": {
+      "types": "./dist/core/geometry/index.d.ts",
+      "import": "./dist/core/geometry/index.js",
+      "default": "./dist/core/geometry/index.js"
+    },
+    "./polynomial": {
+      "types": "./dist/core/polynomial/index.d.ts",
+      "import": "./dist/core/polynomial/index.js",
+      "default": "./dist/core/polynomial/index.js"
+    },
+    "./transform": {
+      "types": "./dist/core/transform/index.d.ts",
+      "import": "./dist/core/transform/index.js",
+      "default": "./dist/core/transform/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jedlsf/ppg-engine.git"
+  },
+  "funding": {
+    "type": "github",
+    "url": "https://github.com/sponsors/jedlsf"
+  },
+  "keywords": [
+    "ppg",
+    "geometry",
+    "polynomial",
+    "permutation",
+    "state-engine",
+    "transformation",
+    "typescript",
+    "algebra"
+  ],
+  "homepage": "https://github.com/jedlsf/ppg-engine#readme",
+  "bugs": {
+    "url": "https://github.com/jedlsf/ppg-engine/issues"
+  },
+  "scripts": {
+    "build": "npx --yes --package typescript@5.9.3 tsc -p tsconfig.build.json",
+    "typecheck": "npx --yes --package typescript@5.9.3 tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:geometry": "vitest run tests/geometry",
+    "test:polynomial": "vitest run tests/polynomial",
+    "test:transform": "vitest run tests/transform",
+    "test:engine": "vitest run tests/engine",
+    "check": "npm run typecheck && npm test && npm run build"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "vitest": "^5.1.0"
+  }
+}
