@@ -63,7 +63,10 @@
     "test:polynomial": "vitest run tests/polynomial",
     "test:transform": "vitest run tests/transform",
     "test:engine": "vitest run tests/engine",
-    "check": "npm run typecheck && npm test && npm run build"
+    "check": "npm run typecheck && npm test && npm run build",
+    "test:integration": "vitest run tests/integration tests/engine/ppg-engine.integration.test.ts tests/transform/integration.test.ts",
+    "test:security": "vitest run tests/geometry/security-validation.test.ts tests/polynomial/adversarial.test.ts",
+    "test:layers": "vitest run tests/geometry tests/polynomial tests/transform tests/engine tests/integration"
   },
   "devDependencies": {
     "@types/node": "^26.6.6",

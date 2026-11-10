@@ -1,5 +1,5 @@
 import type { Coordinate, CubeId, SlotId } from './types.js';
-import { FaceId } from './types.js';
+import { FaceId, isFaceId } from './types.js';
 import type { SlotIndexingEngine } from './indexing.js';
 
 /** Integer coordinates on the N x N x N grid of cubie positions. */
@@ -64,6 +64,7 @@ function makeAddress(cubeId: CubeId, position: GridPosition, normal: FaceNormal)
 
 /** Return the fixed outward normal associated with a canonical face ID. */
 export function normalForFace(faceId: FaceId): FaceNormal {
+  if (!isFaceId(faceId)) throw new RangeError(`Invalid FaceId: ${String(faceId)}`);
   const normal = NORMAL_BY_FACE[faceId];
   if (!normal) {
     throw new RangeError(`Invalid FaceId: ${String(faceId)}`);
@@ -76,6 +77,13 @@ export function faceForNormal(normal: FaceNormal): FaceId {
   if (normal === null || typeof normal !== 'object') {
     throw new TypeError('Face normal must be an object');
   }
+  for (const [axis, value] of Object.entries({ x: normal.x, y: normal.y, z: normal.z })) {
+    if (typeof value !== 'number' || ![-1, 0, 1].includes(value)) {
+      throw new RangeError(`Face normal component ${axis} must be -1, 0, or 1`);
+    }
+  }
+  const nonZeroComponents = [normal.x, normal.y, normal.z].filter((value) => value !== 0).length;
+  if (nonZeroComponents !== 1) throw new RangeError('Face normal must have exactly one non-zero component');
   const faceId = FACE_BY_NORMAL_KEY.get(normalKey(normal));
   if (faceId === undefined) {
     throw new RangeError(

@@ -1,6 +1,6 @@
 import type { SlotIndexingEngine } from './indexing.js';
 import { systemSpecKey } from './topology.js';
-import { makeSlotId } from './types.js';
+import { isFaceId, makeSlotId } from './types.js';
 import type { SlotId } from './types.js';
 import {
   applyPermutation,
@@ -25,13 +25,24 @@ export function createFaceExchangePermutation(
   if (connection === null || typeof connection !== 'object') {
     throw new TypeError('ResolvedFaceConnection must be an object');
   }
-  if (connection.systemKey !== systemSpecKey(engine)) {
+  if (typeof connection.systemKey !== 'string' || connection.systemKey !== systemSpecKey(engine)) {
     throw new Error('Resolved face connection was built for a different SystemSpec');
   }
   if (connection.mappingStatus !== 'bijective') {
     throw new RangeError(
       `Cannot create a face exchange for mappingStatus=${String(connection.mappingStatus)}; equal face resolutions are required`,
     );
+  }
+  if (!Number.isSafeInteger(connection.gridSizeA) || connection.gridSizeA <= 0 ||
+      !Number.isSafeInteger(connection.gridSizeB) || connection.gridSizeB <= 0 ||
+      !Array.isArray(connection.pairs)) {
+    throw new TypeError('Resolved face connection contains malformed grid sizes or pairs');
+  }
+  const cubeA = engine.getCube(connection.cubeA);
+  const cubeB = engine.getCube(connection.cubeB);
+  if (connection.gridSizeA !== cubeA.gridSize || connection.gridSizeB !== cubeB.gridSize ||
+      !isFaceId(connection.faceA) || !isFaceId(connection.faceB)) {
+    throw new RangeError('Resolved face connection endpoints do not match the engine geometry');
   }
   const expectedPairs = connection.gridSizeA * connection.gridSizeA;
   if (connection.gridSizeA !== connection.gridSizeB || connection.pairs.length !== expectedPairs) {
@@ -40,9 +51,14 @@ export function createFaceExchangePermutation(
 
   const mapping = Array.from({ length: engine.spec.totalSlots }, (_, index) => index);
   const touched = new Set<number>();
-  for (const pair of connection.pairs) {
-    const a = Number(pair.slotA);
-    const b = Number(pair.slotB);
+  for (let pairIndex = 0; pairIndex < connection.pairs.length; pairIndex += 1) {
+    if (!Object.hasOwn(connection.pairs, pairIndex)) throw new TypeError(`Connection pair ${pairIndex} is missing`);
+    const pair = connection.pairs[pairIndex];
+    if (pair === null || typeof pair !== 'object' || typeof pair.slotA !== 'number' || typeof pair.slotB !== 'number') {
+      throw new TypeError(`Connection pair ${pairIndex} is malformed`);
+    }
+    const a = pair.slotA;
+    const b = pair.slotB;
     if (a < 0 || a >= engine.spec.totalSlots || b < 0 || b >= engine.spec.totalSlots || a === b) {
       throw new RangeError(`Invalid face-cell pair (${a}, ${b})`);
     }
@@ -75,8 +91,11 @@ export function composeGlobalPermutations(
   operations: readonly Permutation[],
 ): Permutation {
   if (!Array.isArray(operations)) throw new TypeError('operations must be an array');
+  if (operations.length > 10_000) throw new RangeError('Operation count exceeds the supported limit of 10000');
   let accumulated = identityPermutation(engine.spec.totalSlots);
-  for (const [index, operation] of operations.entries()) {
+  for (let index = 0; index < operations.length; index += 1) {
+    if (!Object.hasOwn(operations, index)) throw new TypeError(`Operation at index ${index} is missing`);
+    const operation = operations[index];
     if (!isPermutation(operation)) {
       throw new RangeError(`Operation at index ${index} is not a valid permutation`);
     }
@@ -95,7 +114,8 @@ export function isGlobalPermutation(
   engine: SlotIndexingEngine,
   permutation: Permutation,
 ): boolean {
-  return isPermutation(permutation) && permutation.size === engine.spec.totalSlots;
+  return permutation !== null && typeof permutation === 'object' &&
+    permutation.size === engine.spec.totalSlots && isPermutation(permutation);
 }
 
 /** Apply a validated global permutation to a payload array indexed by SlotId. */

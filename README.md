@@ -218,6 +218,72 @@ npm run test:transform
 npm run test:engine
 ```
 
+
+## 25 use cases across sectors and industries
+
+PPG Engine provides reusable geometry, polynomial-state, and reversible-transformation primitives. The following are illustrative application patterns, not ready-made sector applications. Each production adoption still needs domain-specific validation, data models, performance testing, and applicable regulatory controls.
+
+| # | Sector / industry | Example use case | Potential benefit from PPG Engine |
+|---:|---|---|---|
+| 1 | Advanced manufacturing | Model component positions and process states across modular production cells. | A consistent slot model and reversible state changes make process simulations easier to reproduce. |
+| 2 | Robotics | Prototype discrete end-effector, workspace, or puzzle-like motion states. | Geometry-based permutations provide explicit, testable state transitions for simulation prototypes. |
+| 3 | Automotive engineering | Model vehicle subsystem configurations and discrete sensor/layout states. | Common coordinate indexing helps compare configurations and replay transformations. |
+| 4 | Aerospace simulation | Represent modular spacecraft or aircraft subsystem states in a simulator. | Ordered topology and deterministic transformations support repeatable simulation experiments; not flight-control software. |
+| 5 | Supply chain and logistics | Represent warehouse, hub, and route-node states with adjacency relationships. | State changes can be applied and reversed to compare routing or allocation scenarios. |
+| 6 | Warehousing | Model bin occupancy, storage zones, and slot reassignment. | Canonical slots and permutation operations make reorganization scenarios explicit. |
+| 7 | Construction and BIM | Prototype modular building-component adjacency and configuration states. | Orientation-aware connections help reason about neighboring modules and compatible layouts. |
+| 8 | Architecture and CAD research | Explore transformations of discretized design surfaces and modular forms. | A shared geometry model provides repeatable coordinate mappings and reversible edits. |
+| 9 | Game development | Build puzzle mechanics, board states, cube worlds, or deterministic game simulations. | Face turns, slice moves, custom state initialization, undo, and redo reduce bespoke state-engine code. |
+| 10 | STEM education | Teach modular arithmetic, quotient rings, permutations, and reversible functions. | The layers make the relationship between geometry, algebra, and transformations inspectable. |
+| 11 | Scientific computing | Prototype deterministic pipelines over structured polynomial-valued state arrays. | Immutable state snapshots and ordered transformation sequences improve experiment reproducibility. |
+| 12 | Materials science | Explore small lattice and unit-cell configuration models. | Explicit coordinate and orientation transforms support repeatable discrete-state experiments. |
+| 13 | Chemistry research | Prototype coarse-grained configuration-state transitions for teaching or exploratory tooling. | Reversible transformations help compare model states; the engine does not calculate chemical properties. |
+| 14 | Bioinformatics | Represent tiled feature windows or discrete sequence annotations in a structured state model. | Canonical indexing and polynomial payloads provide a consistent substrate for custom research code. |
+| 15 | Medical imaging research | Experiment with labeled tile or voxel-region arrangements in non-clinical prototypes. | Stable indexing and transformations help reproduce data-layout experiments; not for diagnosis or treatment decisions. |
+| 16 | Energy systems | Model discrete states of grid zones, substations, or modular network layouts. | Topology-aware adjacency and reversible changes support planning simulations. |
+| 17 | Telecommunications | Prototype network-node layouts, link adjacency, and configuration changes. | Ordered topology and state transformations make network scenarios easier to compare. |
+| 18 | Data centers | Model rack, cabinet, and equipment-slot layouts with placement constraints. | Canonical slot ranges and adjacency maps help simulate equipment moves and reconfiguration. |
+| 19 | Precision agriculture | Represent field zones, sensor regions, or irrigation-cell configurations. | Grid-indexed state updates can support repeatable spatial planning prototypes. |
+| 20 | Environmental science | Build discrete state models over tiled environmental regions. | Transformations and immutable snapshots make scenario comparisons reproducible. |
+| 21 | GIS and geospatial research | Prototype local tile, zone, and adjacency operations. | Coordinate-to-slot bijections simplify repeatable transformations over discretized regions. |
+| 22 | Finance and risk analytics | Explore discrete portfolio, allocation, or stress-scenario states. | Reversible state updates make scenario branches easier to replay; this is not a pricing or advisory engine. |
+| 23 | Insurance operations | Prototype claim-workflow state transitions and scenario comparisons. | A consistent state model and bounded undo history help make process simulations auditable. |
+| 24 | Retail and merchandising | Model shelf, planogram, or inventory-location rearrangements. | Permutations and state snapshots support reversible layout and stock-placement experiments. |
+| 25 | Records and digital provenance | Model document lifecycle metadata, version relationships, or workflow state. | Deterministic state transformations help compare and replay metadata changes; the engine does not sign or authenticate records. |
+
+## Resource limits and defensive input handling
+
+The runtime validates public inputs even when TypeScript types have been bypassed by JavaScript callers or deserialized data. It rejects malformed IDs, invalid face normals, sparse arrays, non-canonical polynomial encodings, forged permutation structures, incompatible states, and malformed transformation contracts.
+
+To avoid unbounded allocations from caller-controlled dimensions, the current implementation enforces these engineering limits:
+
+| Resource | Supported limit |
+|---|---:|
+| Cube instances in one system | 4,096 |
+| Grid edge length per cube | 128 |
+| Total facelet slots per geometry system | 100,000 |
+| Polynomial degree | 4,096 |
+| Dense polynomial-state coefficients (slots × degree) | 262,144 |
+| Input coefficient vector length | 65,536 |
+| Transformations in one sequence | 10,000 |
+| Retained engine history | 1,000 by default; configurable up to 10,000 |
+
+These are implementation/resource limits, not mathematical or cryptographic parameters. An application should set lower limits appropriate to its runtime and workload. BigInt arithmetic and user-supplied callbacks execute in-process; callbacks are not sandboxed, and exceptions thrown by a callback are intentionally propagated. The engine keeps the previous state unchanged when a state initialization or transformation fails before commit. No library can guarantee immunity to every process-level failure, runtime bug, or hostile code already executing with the caller's privileges.
+
+## Test coverage
+
+The test suite is organized by layer and includes both focused unit tests and multi-layer integration tests:
+
+| Suite | Coverage |
+|---|---|
+| tests/geometry | Canonical indexing, surface coordinates, permutations, moves, orientations, topology, face connections, global exchanges, bounds, and malformed inputs |
+| tests/polynomial | Modular arithmetic, ring parameters, canonical construction, arithmetic laws, encoding/decoding, immutable state, allocation limits, and adversarial inputs |
+| tests/transform | Permutation actions, ring automorphisms, coupling, invariants, composition order, inverse behavior, incompatible contexts, and invalid custom transformations |
+| tests/engine | Engine state lifecycle, operation history, undo/redo, bounded history, and end-to-end façade behavior |
+| tests/integration | Cross-layer topology → state → transformation workflows, including inverse/replay behavior |
+
+Run the complete verification locally with npm run check, or run targeted suites with npm run test:geometry, npm run test:polynomial, npm run test:transform, npm run test:engine, npm run test:integration, and npm run test:security.
+
 ## Model boundaries
 
 - Geometry describes facelet slots and validated permutations. It does not enforce every reachability constraint of a physical Rubik's Cube.

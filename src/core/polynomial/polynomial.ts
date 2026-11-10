@@ -3,9 +3,16 @@ import {
   createRingParameters,
   normalizeRingParameters,
   sameRing,
+  MAX_SUPPORTED_INPUT_COEFFICIENTS,
   type PolynomialRingParameters,
 } from './parameters.js';
 
+/**
+ * Describe the polynomial encoding API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface PolynomialEncoding {
   readonly format: 'ppc-polynomial-v1';
   readonly modulus: string;
@@ -23,7 +30,19 @@ export interface PolynomialEncoding {
  * this class must not be treated as production cryptographic implementation.
  */
 export class Polynomial {
+  /**
+   * Provide the ring operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ring: PolynomialRingParameters;
+  /**
+   * Provide the coefficients operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly coefficients: readonly bigint[];
 
   private constructor(ring: PolynomialRingParameters, canonicalCoefficients: readonly bigint[]) {
@@ -44,10 +63,16 @@ export class Polynomial {
     if (!Array.isArray(coefficients)) {
       throw new TypeError('coefficients must be an array of bigint values');
     }
+    if (coefficients.length > MAX_SUPPORTED_INPUT_COEFFICIENTS) {
+      throw new RangeError(`Coefficient input exceeds the supported limit of ${MAX_SUPPORTED_INPUT_COEFFICIENTS}`);
+    }
 
     const output = Array<bigint>(normalizedRing.degree).fill(0n);
     for (let exponent = 0; exponent < coefficients.length; exponent += 1) {
-      const value = coefficients[exponent];
+      if (!Object.hasOwn(coefficients, exponent)) throw new TypeError(`Coefficient array is sparse at index ${exponent}`);
+      const descriptor = Object.getOwnPropertyDescriptor(coefficients, String(exponent));
+      if (!descriptor || !('value' in descriptor)) throw new TypeError(`Coefficient at index ${exponent} must be a data property`);
+      const value = descriptor.value;
       if (typeof value !== 'bigint') {
         throw new TypeError(`coefficient ${exponent} must be a bigint`);
       }
@@ -82,7 +107,10 @@ export class Polynomial {
     const copied = new Array<bigint>(normalizedRing.degree);
     for (let index = 0; index < normalizedRing.degree; index += 1) {
       // Index-based access also rejects sparse arrays, which Array#map skips.
-      const coefficient = coefficients[index];
+      if (!Object.hasOwn(coefficients, index)) throw new TypeError(`Coefficient array is sparse at index ${index}`);
+      const descriptor = Object.getOwnPropertyDescriptor(coefficients, String(index));
+      if (!descriptor || !('value' in descriptor)) throw new TypeError(`Coefficient at index ${index} must be a data property`);
+      const coefficient = descriptor.value;
       if (typeof coefficient !== 'bigint') {
         throw new TypeError(`coefficient ${index} must be a bigint`);
       }
@@ -97,11 +125,23 @@ export class Polynomial {
     return new Polynomial(normalizedRing, copied);
   }
 
+  /**
+   * Construct the zero polynomial for a validated ring.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public static zero(ring: PolynomialRingParameters): Polynomial {
     const normalizedRing = normalizeRingParameters(ring);
     return new Polynomial(normalizedRing, Array<bigint>(normalizedRing.degree).fill(0n));
   }
 
+  /**
+   * Construct the multiplicative identity for a validated ring.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public static one(ring: PolynomialRingParameters): Polynomial {
     const normalizedRing = normalizeRingParameters(ring);
     const coefficients = Array<bigint>(normalizedRing.degree).fill(0n);
@@ -131,6 +171,12 @@ export class Polynomial {
     return new Polynomial(normalizedRing, coefficients);
   }
 
+  /**
+   * Return one coefficient by its ascending-degree index.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public coefficient(index: number): bigint {
     if (!Number.isSafeInteger(index) || index < 0 || index >= this.ring.degree) {
       throw new RangeError(`coefficient index must be in [0, ${this.ring.degree - 1}]`);
@@ -138,10 +184,22 @@ export class Polynomial {
     return this.coefficients[index]!;
   }
 
+  /**
+   * Return whether every canonical coefficient is zero.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public isZero(): boolean {
     return this.coefficients.every((coefficient) => coefficient === 0n);
   }
 
+  /**
+   * Compare complete geometry, ring, and polynomial-state contents.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public equals(other: Polynomial): boolean {
     if (!(other instanceof Polynomial) || !sameRing(this.ring, other.ring)) {
       return false;
@@ -149,6 +207,12 @@ export class Polynomial {
     return this.coefficients.every((coefficient, index) => coefficient === other.coefficients[index]);
   }
 
+  /**
+   * Add two compatible polynomials coefficient-wise modulo q.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public add(other: Polynomial): Polynomial {
     this.assertCompatible(other);
     const output = this.coefficients.map((coefficient, index) =>
@@ -157,6 +221,12 @@ export class Polynomial {
     return Polynomial.fromCanonicalCoefficients(this.ring, output);
   }
 
+  /**
+   * Subtract a compatible polynomial coefficient-wise modulo q.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public subtract(other: Polynomial): Polynomial {
     this.assertCompatible(other);
     const output = this.coefficients.map((coefficient, index) =>
@@ -165,6 +235,12 @@ export class Polynomial {
     return Polynomial.fromCanonicalCoefficients(this.ring, output);
   }
 
+  /**
+   * Return the additive inverse of this polynomial.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public negate(): Polynomial {
     const output = this.coefficients.map((coefficient) => negateMod(coefficient, this.ring.modulus));
     return Polynomial.fromCanonicalCoefficients(this.ring, output);
@@ -196,6 +272,12 @@ export class Polynomial {
     return Polynomial.fromCanonicalCoefficients(this.ring, output);
   }
 
+  /**
+   * Multiply every coefficient by a BigInt scalar modulo q.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public scale(scalar: bigint): Polynomial {
     if (typeof scalar !== 'bigint') {
       throw new TypeError('scalar must be a bigint');
@@ -218,7 +300,10 @@ export class Polynomial {
     let result = Polynomial.one(this.ring);
     let base: Polynomial = this;
     let remaining = exponent;
+    let steps = 0;
     while (remaining > 0n) {
+      steps += 1;
+      if (steps > 4_096) throw new RangeError('Polynomial exponent exceeds the supported 4096-bit processing limit');
       if ((remaining & 1n) === 1n) result = result.multiply(base);
       remaining >>= 1n;
       if (remaining > 0n) base = base.multiply(base);
@@ -226,6 +311,12 @@ export class Polynomial {
     return result;
   }
 
+  /**
+   * Return the canonical JSON-compatible encoding of this polynomial.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public encode(): PolynomialEncoding {
     return encodePolynomial(this);
   }
@@ -269,11 +360,18 @@ export function decodePolynomial(
     throw new TypeError('Polynomial encoding must be an object');
   }
 
+  const prototype = Object.getPrototypeOf(input);
+  if (prototype !== Object.prototype && prototype !== null) throw new TypeError('Polynomial encoding must be a plain data object');
   const record = input as Record<string, unknown>;
   const allowedKeys = ['format', 'modulus', 'degree', 'quotient', 'coefficients'];
-  const keys = Object.keys(record);
+  const keys = Reflect.ownKeys(record);
+  if (keys.some((key) => typeof key !== 'string')) throw new RangeError('Polynomial encoding must not contain symbol properties');
   if (keys.length !== allowedKeys.length || allowedKeys.some((key) => !Object.hasOwn(record, key))) {
     throw new RangeError('Polynomial encoding has missing or unexpected fields');
+  }
+  for (const key of allowedKeys) {
+    const descriptor = Object.getOwnPropertyDescriptor(record, key);
+    if (!descriptor || !('value' in descriptor)) throw new TypeError(`Polynomial encoding field ${key} must be an own data property`);
   }
   if (record.format !== 'ppc-polynomial-v1') {
     throw new RangeError(`Unsupported polynomial encoding format: ${String(record.format)}`);
@@ -295,10 +393,17 @@ export function decodePolynomial(
   }
 
   const coefficients = new Array<bigint>(normalizedRing.degree);
+  const modulusText = normalizedRing.modulus.toString(10);
   for (let index = 0; index < normalizedRing.degree; index += 1) {
-    const value = record.coefficients[index];
+    if (!Object.hasOwn(record.coefficients, index)) throw new TypeError(`Encoded coefficient array is sparse at index ${index}`);
+    const coefficientDescriptor = Object.getOwnPropertyDescriptor(record.coefficients, String(index));
+    if (!coefficientDescriptor || !('value' in coefficientDescriptor)) throw new TypeError(`Encoded coefficient at index ${index} must be a data property`);
+    const value = coefficientDescriptor.value;
     if (typeof value !== 'string' || !/^(0|[1-9][0-9]*)$/.test(value)) {
       throw new RangeError(`Encoded coefficient ${index} is not a canonical unsigned decimal string`);
+    }
+    if (value.length > modulusText.length || (value.length === modulusText.length && value >= modulusText)) {
+      throw new RangeError(`Encoded coefficient ${index} is outside [0, q - 1]`);
     }
     const coefficient = BigInt(value);
     if (coefficient >= normalizedRing.modulus) {

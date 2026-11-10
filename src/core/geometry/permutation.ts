@@ -1,4 +1,4 @@
-import { makeSlotId, type SlotId } from './types.js';
+import { makeSlotId, MAX_SUPPORTED_TOTAL_SLOTS, type SlotId } from './types.js';
 
 /**
  * A permutation of the global slot set [0, size).
@@ -16,6 +16,7 @@ export function createPermutation(sourceToDestination: readonly number[]): Permu
   }
 
   const size = sourceToDestination.length;
+  if (size > MAX_SUPPORTED_TOTAL_SLOTS) throw new RangeError(`Permutation size exceeds the supported limit of ${MAX_SUPPORTED_TOTAL_SLOTS}`);
   if (!Number.isSafeInteger(size)) {
     throw new RangeError('Permutation size must be a safe integer');
   }
@@ -24,6 +25,7 @@ export function createPermutation(sourceToDestination: readonly number[]): Permu
   const normalized: SlotId[] = new Array<SlotId>(size);
 
   for (let source = 0; source < size; source += 1) {
+    if (!Object.hasOwn(sourceToDestination, source)) throw new TypeError(`Permutation mapping is sparse at source ${source}`);
     const destination = sourceToDestination[source];
     if (!Number.isSafeInteger(destination) || destination < 0 || destination >= size) {
       throw new RangeError(
@@ -45,7 +47,7 @@ export function createPermutation(sourceToDestination: readonly number[]): Permu
 
 /** Create the identity permutation of the given number of slots. */
 export function identityPermutation(size: number): Permutation {
-  if (!Number.isSafeInteger(size) || size < 0) {
+  if (!Number.isSafeInteger(size) || size < 0 || size > MAX_SUPPORTED_TOTAL_SLOTS) {
     throw new RangeError(`Permutation size must be a non-negative safe integer; received ${String(size)}`);
   }
   return createPermutation(Array.from({ length: size }, (_, index) => index));
@@ -94,6 +96,7 @@ export function applyPermutation<T>(state: readonly T[], permutation: Permutatio
 
   const output = new Array<T>(permutation.size);
   for (let source = 0; source < permutation.size; source += 1) {
+    if (!Object.hasOwn(state, source)) throw new TypeError(`State array is sparse at source ${source}`);
     const destination = Number(permutation.sourceToDestination[source]);
     output[destination] = state[source]!;
   }
@@ -114,7 +117,7 @@ function assertPermutationShape(permutation: Permutation): void {
   if (permutation === null || typeof permutation !== 'object') {
     throw new TypeError('Permutation must be an object');
   }
-  if (!Number.isSafeInteger(permutation.size) || permutation.size < 0) {
+  if (!Number.isSafeInteger(permutation.size) || permutation.size < 0 || permutation.size > MAX_SUPPORTED_TOTAL_SLOTS) {
     throw new RangeError('Permutation.size must be a non-negative safe integer');
   }
   if (!Array.isArray(permutation.sourceToDestination) || permutation.sourceToDestination.length !== permutation.size) {
@@ -124,8 +127,9 @@ function assertPermutationShape(permutation: Permutation): void {
   // Revalidate public data because a caller can bypass the factory with casts.
   const seen = new Uint8Array(permutation.size);
   for (let source = 0; source < permutation.size; source += 1) {
-    const destination = Number(permutation.sourceToDestination[source]);
-    if (!Number.isSafeInteger(destination) || destination < 0 || destination >= permutation.size) {
+    if (!Object.hasOwn(permutation.sourceToDestination, source)) throw new TypeError(`Permutation mapping is sparse at source ${source}`);
+    const destination = permutation.sourceToDestination[source];
+    if (typeof destination !== 'number' || !Number.isSafeInteger(destination) || destination < 0 || destination >= permutation.size) {
       throw new RangeError(`Invalid destination at source ${source}`);
     }
     if (seen[destination] !== 0) {

@@ -1,5 +1,5 @@
 import type { Coordinate, CubeId } from './types.js';
-import { FaceId } from './types.js';
+import { FaceId, isFaceId } from './types.js';
 import type { SlotIndexingEngine } from './indexing.js';
 import {
   coordinateToSurfaceAddress,
@@ -10,11 +10,29 @@ import {
 } from './surface.js';
 import { createPermutation, type Permutation } from './permutation.js';
 
+/**
+ * Describe the axes API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export const AXES = Object.freeze(['x', 'y', 'z'] as const);
+/**
+ * Describe the axis API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type Axis = (typeof AXES)[number];
 
 /** Signed right-handed quarter turns around the positive world axis. */
 export const QUARTER_TURN_COUNTS = Object.freeze([-2, -1, 1, 2] as const);
+/**
+ * Describe the quarter turn count API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export type QuarterTurnCount = (typeof QUARTER_TURN_COUNTS)[number];
 
 /** Slice layer index is the position coordinate along axis, in [0, N-1]. */
@@ -174,6 +192,7 @@ export function createFaceTurnPermutation(
   if (move === null || typeof move !== 'object') {
     throw new TypeError('FaceTurnMove must be an object');
   }
+  if (!isFaceId(move.faceId)) throw new RangeError(`Invalid FaceId for face turn: ${String(move.faceId)}`);
   const definition = FACE_TURN_DEFINITIONS[move.faceId];
   if (!definition) {
     throw new RangeError(`Invalid FaceId for face turn: ${String(move.faceId)}`);

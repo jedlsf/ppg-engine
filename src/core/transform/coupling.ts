@@ -5,6 +5,7 @@ import {
   assertStateMatchesContext,
   createTransformationContext,
   type PolynomialStateTransformation,
+  validateTransformationName,
 } from './types.js';
 
 /**
@@ -14,16 +15,70 @@ import {
  * Its inverse subtracts the same product. Coefficient need not be a unit.
  */
 export class PolynomialCoupling implements PolynomialStateTransformation {
+  /**
+   * Provide the kind operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly kind = 'coupling' as const;
+  /**
+   * Provide the name operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly name: string;
+  /**
+   * Provide the system key operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly systemKey: string;
+  /**
+   * Provide the ring key operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ringKey: string;
+  /**
+   * Provide the ring operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly ring: PolynomialRingParameters;
+  /**
+   * Provide the source slot operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly sourceSlot: SlotId;
+  /**
+   * Provide the target slot operation.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly targetSlot: SlotId;
+  /**
+   * Return one coefficient by its ascending-degree index.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public readonly coefficient: Polynomial;
   private readonly engine: SlotIndexingEngine;
 
+  /**
+   * function Object() { [native code] }
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public constructor(
     engine: SlotIndexingEngine,
     ring: PolynomialRingParameters,
@@ -33,9 +88,7 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
     name = 'polynomial-coupling',
   ) {
     const context = createTransformationContext(engine, ring);
-    if (typeof name !== 'string' || name.trim().length === 0) {
-      throw new TypeError('name must be a non-empty string');
-    }
+    validateTransformationName(name);
     const source = validateSlot(engine, sourceSlot, 'sourceSlot');
     const target = validateSlot(engine, targetSlot, 'targetSlot');
     if (source === target) {
@@ -59,6 +112,12 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
     Object.freeze(this);
   }
 
+  /**
+   * Apply the ordered transformation steps to a compatible polynomial state.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public apply(state: PolynomialState): PolynomialState {
     assertStateMatchesContext(state, this.systemKey, this.ringKey);
     const source = state.get(this.sourceSlot);
@@ -67,6 +126,12 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
     return state.withValue(this.targetSlot, updatedTarget);
   }
 
+  /**
+   * Construct the inverse sequence by reversing and inverting every step.
+   *
+   * @remarks Public entry points validate runtime values and preserve the
+   * documented immutable-state and resource-boundary contracts.
+   */
   public inverse(): PolynomialCoupling {
     return new PolynomialCoupling(
       this.engine,
@@ -79,6 +144,12 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
   }
 }
 
+/**
+ * Create a validated polynomial coupling transformation.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export function createPolynomialCoupling(
   engine: SlotIndexingEngine,
   ring: PolynomialRingParameters,

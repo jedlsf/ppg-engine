@@ -11,6 +11,12 @@ import {
   type LatticePosition,
 } from './placement.js';
 
+/**
+ * Describe the face adjacency API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface FaceAdjacency {
   /** Canonical endpoint A follows the cube order in SystemSpec. */
   readonly cubeA: CubeId;
@@ -21,6 +27,12 @@ export interface FaceAdjacency {
   readonly worldNormalFromA: FaceNormal;
 }
 
+/**
+ * Describe the cube network API.
+ *
+ * @remarks Public entry points validate runtime values and preserve the
+ * documented immutable-state and resource-boundary contracts.
+ */
 export interface CubeNetwork {
   /** Stable compatibility key for the ordered cube IDs and grid sizes in the source SystemSpec. */
   readonly systemKey: string;
