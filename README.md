@@ -2,36 +2,42 @@
 
 **PPG** stands for **Polynomial Permutation Geometry**—the three ideas the engine brings together:
 
-- **Geometry** describes cube-based layouts: positions, orientations, and which positions are connected.
-- **Polynomials** provide exact, modular values that can be stored in those positions and changed through algebraic operations.
-- **Permutations** move those values between positions, making operations such as turns and other state changes explicit and reversible.
+- **Geometry** describes cube facelets: their coordinates, orientations, and how faces connect across placed cubes.
+- **Polynomials** are exact, modular values stored in those facelet positions.
+- **Permutations and transformations** rearrange or algebraically change those values in explicit, reversible ways.
 
-In everyday terms, PPG Engine is a TypeScript library for programs that need to represent an organized, cube-like state and change it in well-defined ways. Picture a set of connected positions, each holding a value: the engine describes the layout and provides operations to rearrange or transform the values, with undo and redo.
+In everyday terms, PPG Engine is a TypeScript library for representing the state of one or more cube surfaces and changing that state in well-defined ways. Each small square on a cube face (a *facelet*) is a position that can hold a polynomial value. The engine provides cube-aware indexing and moves, polynomial operations, and undo/redo.
 
-You can use it as a building block in TypeScript projects such as puzzle or game mechanics, deterministic simulations, and research or education prototypes involving structured states and reversible operations. It is a reusable mathematical engine, not a finished game, visual interface, general-purpose physics simulator, or domain-specific application.
+It is a building block for TypeScript projects such as cube-based puzzle or game mechanics, teaching or exploring polynomial arithmetic and reversible transformations, and experiments that can be represented on cube facelets. It does **not** model arbitrary spatial grids or domain-specific objects directly; applications that use it for another kind of problem must map that problem onto its cube-facelet model. It is not a finished game, visual interface, physics simulator, or industry-specific application.
 
-The engine brings together the reusable first three layers of the former Majik Rubik research project:
+The source is organized into three layers:
 
 | Layer | Responsibility |
 |---|---|
-| **Layer 1 — Geometry** | Cube systems, canonical facelet slots, coordinates, orientations, topology, adjacency, and permutations |
-| **Layer 2 — Polynomial state** | Exact arithmetic in (R_q = \mathbb{Z}_q[X]/(X^n + 1)), immutable polynomials, and state assignment |
-| **Layer 3 — Transformations** | Reversible slot permutations, polynomial coupling, ring automorphisms, and ordered composition |
+| **Layer 1 — Geometry** | Cube facelet slots and indexing, coordinates, orientations, cube placement and adjacency, and validated permutations |
+| **Layer 2 — Polynomial state** | Exact arithmetic in (R_q = \mathbb{Z}_q[X]/(X^n + 1)), immutable polynomials, and one polynomial value per facelet slot |
+| **Layer 3 — Transformations** | Applying slot permutations, polynomial coupling, ring automorphisms, and ordered reversible composition to a polynomial state |
 
-The public entry point is the `PPGEngine` class. It owns the geometry and polynomial configuration, maintains the current state, applies Layer 3 transformations, and provides undo/redo and diagnostics.
+The public entry point is the `PPGEngine` class. It combines the geometry and polynomial configuration, maintains the current state, applies transformations, and provides undo/redo and diagnostics. The lower-level geometry, polynomial, and transformation modules can also be used independently.
 
 > **Scope:** PPG Engine is a mathematical state and transformation engine. It is not an encryption, key-generation, key-exchange, or digital-signature implementation. It makes no cryptographic or post-quantum security claim. JavaScript `BigInt` arithmetic is not guaranteed to be constant-time.
 
 ## Installation
 
-Install from the repository while the package is being prepared for publication:
+To build and use a local checkout, clone the repository, then run these commands from its root:
 
 ```bash
 npm install
 npm run build
 ```
 
-Once published, the package will be installable as:
+To use a built local checkout from another project, install it by path (replace the path with the location of your checkout):
+
+```bash
+npm install ../ppg-engine
+```
+
+Once the package is published to npm, install it by name:
 
 ```bash
 npm install ppg-engine
@@ -99,7 +105,9 @@ const engine = new PPGEngine({
 });
 ```
 
-The order of the cube array determines canonical slot offsets. Each cube contributes (6N^2) slots for its grid size (N).
+The order of the cube array determines canonical slot offsets. Each cube contributes (6N^2) facelet slots for grid size (N). This configuration defines the cubes and their slots; it does not place the cubes in relation to one another.
+
+To model a cube arrangement and find adjacent faces, use the geometry module's `createCubeNetwork()` with a placement and orientation for each cube. Grid size sets the number of facelets on each edge, not the cubes' physical size. Face exchange is supported for connected faces with matching resolutions; the engine does not resample different resolutions.
 
 ### Polynomial ring
 
@@ -110,6 +118,8 @@ R_q = \mathbb{Z}_q[X]/(X^n + 1)
 ]
 
 where `modulus` is (q) and `degree` is (n). Coefficients are `bigint` values normalized to the canonical range ([0, q-1]). Polynomial coefficients are stored in ascending-degree order.
+
+The modulus must be at least 2 and may be composite; the degree must be a positive integer within the implementation limit.
 
 ## Working with state
 
@@ -181,7 +191,7 @@ engine.undo();
 engine.redo();
 ```
 
-The lower-level modules are also available directly:
+The `PPGEngine` façade also provides these more general operations:
 
 - `PPGEngine.applyPermutation()` applies a validated global permutation.
 - `PPGEngine.applyFaceExchange()` exchanges matching payloads across a resolved cube-face connection.
@@ -227,7 +237,17 @@ npm run test:engine
 ```
 
 
-## 25 use cases across sectors and industries
+## What you can build with it
+
+The repository supplies reusable primitives, not prebuilt applications or integrations. Its most direct uses are:
+
+- Cube-based puzzles and game mechanics that need facelet state, face turns, slice moves, or undo/redo.
+- Examples and experiments that combine modular polynomial arithmetic with structured state changes.
+- Prototypes whose data can be deliberately mapped to cube facelets and benefit from validated, reversible transformations.
+
+The source code does not include industry-specific data models, physics or domain calculations, visualization, persistence, networking, or application workflows. Those must be supplied by the consuming application; mapping a problem onto facelets does not by itself make the engine a domain solution.
+
+### 25 use cases across sectors and industries
 
 PPG Engine provides reusable geometry, polynomial-state, and reversible-transformation primitives. The following are illustrative application patterns, not ready-made sector applications. Each production adoption still needs domain-specific validation, data models, performance testing, and applicable regulatory controls.
 
@@ -272,11 +292,12 @@ To avoid unbounded allocations from caller-controlled dimensions, the current im
 | Total facelet slots per geometry system | 100,000 |
 | Polynomial degree | 4,096 |
 | Dense polynomial-state coefficients (slots × degree) | 262,144 |
-| Input coefficient vector length | 65,536 |
+| Coefficients in one polynomial-construction input | 65,536 |
 | Transformations in one sequence | 10,000 |
-| Retained engine history | 1,000 by default; configurable up to 10,000 |
+| Retained engine history | 1,000 by default; configurable up to 10,000 (0 disables history) |
+| Modulus bit length | 4,096 |
 
-These are implementation/resource limits, not mathematical or cryptographic parameters. An application should set lower limits appropriate to its runtime and workload. BigInt arithmetic and user-supplied callbacks execute in-process; callbacks are not sandboxed, and exceptions thrown by a callback are intentionally propagated. The engine keeps the previous state unchanged when a state initialization or transformation fails before commit. No library can guarantee immunity to every process-level failure, runtime bug, or hostile code already executing with the caller's privileges.
+These are implementation/resource limits, not mathematical or cryptographic parameters. Limits apply together: for example, the slot count multiplied by the polynomial degree must also stay within the dense-state coefficient limit, so the individual maxima cannot all be combined. An application should set lower limits appropriate to its runtime and workload. BigInt arithmetic and user-supplied callbacks execute in-process; callbacks are not sandboxed, and exceptions thrown by a callback are intentionally propagated. The engine keeps the previous state unchanged when a state initialization or transformation fails before commit. No library can guarantee immunity to every process-level failure, runtime bug, or hostile code already executing with the caller's privileges.
 
 ## Test coverage
 
