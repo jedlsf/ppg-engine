@@ -98,7 +98,7 @@ export class PolynomialState {
     }
     for (let index = 0; index < values.length; index += 1) {
       // Index-based access also rejects sparse arrays, which Array#forEach skips.
-      if (!Object.hasOwn(values, index)) throw new TypeError(`State values are sparse at slot ${index}`);
+      if (!Object.hasOwn(values, index)) throw new TypeError(`State values are sparse at slot ${index}; value is not a Polynomial`);
       const descriptor = Object.getOwnPropertyDescriptor(values, String(index));
       if (!descriptor || !('value' in descriptor)) throw new TypeError(`State value at slot ${index} must be a data property`);
       const value = descriptor.value;
