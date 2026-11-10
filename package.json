@@ -56,8 +56,8 @@
     "url": "https://github.com/jedlsf/ppg-engine/issues"
   },
   "scripts": {
-    "build": "npx --yes --package typescript@5.9.3 tsc -p tsconfig.build.json",
-    "typecheck": "npx --yes --package typescript@5.9.3 tsc --noEmit -p tsconfig.json",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:geometry": "vitest run tests/geometry",
     "test:polynomial": "vitest run tests/polynomial",
