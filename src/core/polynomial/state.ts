@@ -9,7 +9,7 @@ import { Polynomial } from './polynomial.js';
 import { normalizeRingParameters, sameRing, MAX_SUPPORTED_STATE_COEFFICIENTS, type PolynomialRingParameters } from './parameters.js';
 
 /**
- * Describe the polynomial initializer API.
+ * Callback that creates one polynomial value for each canonical slot and receives its coordinate.
  *
  * @remarks Public entry points validate runtime values and preserve the
  * documented immutable-state and resource-boundary contracts.
@@ -22,21 +22,21 @@ export type PolynomialInitializer = (slotId: SlotId, coordinate: Coordinate) => 
  */
 export class PolynomialState {
   /**
-   * Provide the engine operation.
+   * Geometry indexer that defines this state's canonical global slot IDs.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly engine: SlotIndexingEngine;
   /**
-   * Provide the ring operation.
+   * Normalized polynomial ring shared by every value in this state.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ring: PolynomialRingParameters;
   /**
-   * Provide the values operation.
+   * Frozen dense array of polynomial payloads, indexed by global SlotId.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.

@@ -8,7 +8,7 @@ import {
 } from './parameters.js';
 
 /**
- * Describe the polynomial encoding API.
+ * Canonical JSON-compatible representation used to serialize a polynomial without losing BigInt precision.
  *
  * @remarks Public entry points validate runtime values and preserve the
  * documented immutable-state and resource-boundary contracts.
@@ -31,14 +31,14 @@ export interface PolynomialEncoding {
  */
 export class Polynomial {
   /**
-   * Provide the ring operation.
+   * Immutable normalized quotient-ring parameters for this polynomial.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ring: PolynomialRingParameters;
   /**
-   * Provide the coefficients operation.
+   * Frozen canonical coefficients in ascending-degree order, each in the range [0, q - 1].
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.

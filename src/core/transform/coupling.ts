@@ -16,49 +16,49 @@ import {
  */
 export class PolynomialCoupling implements PolynomialStateTransformation {
   /**
-   * Provide the kind operation.
+   * Identifies this transformation as an elementary polynomial shear.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly kind = 'coupling' as const;
   /**
-   * Provide the name operation.
+   * History-safe label for diagnostics and composed transformation reporting.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly name: string;
   /**
-   * Provide the system key operation.
+   * Structural geometry key to which this transformation is bound.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly systemKey: string;
   /**
-   * Provide the ring key operation.
+   * Structural polynomial-ring key to which this transformation is bound.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ringKey: string;
   /**
-   * Provide the ring operation.
+   * Normalized ring in which the coupling coefficient and state values are interpreted.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ring: PolynomialRingParameters;
   /**
-   * Provide the source slot operation.
+   * Slot whose polynomial payload is read but left unchanged by the shear.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly sourceSlot: SlotId;
   /**
-   * Provide the target slot operation.
+   * Slot updated by adding coefficient multiplied by the source payload.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
@@ -74,7 +74,16 @@ export class PolynomialCoupling implements PolynomialStateTransformation {
   private readonly engine: SlotIndexingEngine;
 
   /**
-   * function Object() { [native code] }
+   * Create an invertible elementary shear between two distinct slots.
+   *
+   * @param engine Geometry indexer defining the slot address space.
+   * @param ring Polynomial ring shared by the input state and coefficient.
+   * @param sourceSlot Slot whose current polynomial is used as the source.
+   * @param targetSlot Distinct slot whose value receives the shear contribution.
+   * @param coefficient Ring element multiplied by the source value.
+   * @param name Optional validated history label.
+   * @throws {TypeError} If the engine, coefficient, or label has an invalid runtime type.
+   * @throws {RangeError} If slots are invalid, identical, or use incompatible ring parameters.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.

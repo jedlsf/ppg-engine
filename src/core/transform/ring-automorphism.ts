@@ -64,35 +64,35 @@ export function modularInverseNumber(value: number, modulus: number): number {
  */
 export class RingAutomorphism implements PolynomialStateTransformation {
   /**
-   * Provide the kind operation.
+   * Identifies this transformation as a quotient-ring substitution automorphism.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly kind = "ring-automorphism" as const;
   /**
-   * Provide the name operation.
+   * History-safe label for diagnostics and composed transformation reporting.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly name: string;
   /**
-   * Provide the system key operation.
+   * Structural geometry key to which this state-wide automorphism is bound.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly systemKey: string;
   /**
-   * Provide the ring key operation.
+   * Structural polynomial-ring key required for applying this automorphism.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ringKey: string;
   /**
-   * Provide the ring operation.
+   * Normalized quotient-ring parameters used for the substitution.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
@@ -103,7 +103,14 @@ export class RingAutomorphism implements PolynomialStateTransformation {
   private readonly engine: SlotIndexingEngine;
 
   /**
-   * function Object() { [native code] }
+   * Construct the substitution X → X^k when its exponent defines an automorphism modulo X^n + 1.
+   *
+   * @param engine Geometry indexer that binds the state context.
+   * @param ring Polynomial quotient-ring parameters.
+   * @param exponent Positive exponent; its canonical representative must be coprime to 2n.
+   * @param name Optional validated transformation label.
+   * @throws {TypeError} If the engine or label has an invalid runtime type.
+   * @throws {RangeError} If the exponent does not define a valid ring automorphism.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.

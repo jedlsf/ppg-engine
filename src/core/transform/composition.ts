@@ -14,42 +14,42 @@ import {
 /** A reversible ordered sequence; steps execute from first to last. */
 export class TransformationSequence implements PolynomialStateTransformation {
   /**
-   * Provide the kind operation.
+   * Identifies this object as an ordered transformation sequence.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly kind = 'sequence' as const;
   /**
-   * Provide the name operation.
+   * Human-readable, history-safe label for this sequence.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly name: string;
   /**
-   * Provide the system key operation.
+   * Structural key of the exact ordered geometry specification accepted by this sequence.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly systemKey: string;
   /**
-   * Provide the ring key operation.
+   * Structural key of the polynomial ring accepted by this sequence.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ringKey: string;
   /**
-   * Provide the ring operation.
+   * Normalized polynomial ring used by every step in the sequence.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
    */
   public readonly ring: PolynomialRingParameters;
   /**
-   * Provide the steps operation.
+   * Frozen list of transformations, executed from first to last.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
@@ -58,7 +58,14 @@ export class TransformationSequence implements PolynomialStateTransformation {
   private readonly engine: SlotIndexingEngine;
 
   /**
-   * function Object() { [native code] }
+   * Create a bounded, immutable sequence after validating every step against the same geometry and ring.
+   *
+   * @param engine Geometry indexer that defines the canonical slot space.
+   * @param ring Polynomial quotient-ring parameters shared by every step.
+   * @param steps Ordered transformations to execute; the list is copied and frozen.
+   * @param name Optional label retained in diagnostics and engine history.
+   * @throws {TypeError} If the inputs or any transformation contract is malformed.
+   * @throws {RangeError} If a step is incompatible or the sequence exceeds its configured limit.
    *
    * @remarks Public entry points validate runtime values and preserve the
    * documented immutable-state and resource-boundary contracts.
