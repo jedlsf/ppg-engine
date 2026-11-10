@@ -70,6 +70,7 @@ export function createSystemSpec(cubes: readonly CubeConfig[]): SystemSpec {
     if (!Number.isSafeInteger(slotCount)) {
       throw new RangeError(`Slot count overflows safe integer range for cube ${id}`);
     }
+    if (gridSize > MAX_SUPPORTED_GRID_SIZE) throw new RangeError(`gridSize for cube ${id} exceeds the supported limit of ${MAX_SUPPORTED_GRID_SIZE}`);
 
     if (gridSize > MAX_SUPPORTED_GRID_SIZE) throw new RangeError(`gridSize for cube ${id} exceeds the supported limit of ${MAX_SUPPORTED_GRID_SIZE}`);
 
