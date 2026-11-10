@@ -339,5 +339,5 @@ Developed by **Josef Elijah Fabian (Zelijah)** | [Zelijah](https://thezelijah.wo
 
 ## Contact
 
-- **Business Email**: [business@majikah.solutions](mailto:business@majikah.solutions)
+- **Business Email**: [business@thezelijah.world](mailto:business@thezelijah.world)
 - **Official Website**: [https://www.thezelijah.world](https://www.thezelijah.world)
